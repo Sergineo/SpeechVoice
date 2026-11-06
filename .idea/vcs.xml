@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/../.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/assets/3D-Speaker" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/assets/3D-Speaker/3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/assets/3D-Speaker/campplus" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/assets/sherpa-onnx-pyannote-segmentation-3-0" vcs="Git" />
+  </component>
+</project>
