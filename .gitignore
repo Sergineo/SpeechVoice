@@ -13,6 +13,7 @@
 sherpa-onnx-pyannote-segmentation-3-0/
 sherpa-onnx-whisper-tiny/
 GigaAM-v3-sherpa-onnx/
+Vad/
 /captures
 .externalNativeBuild
 .cxx
