@@ -28,7 +28,6 @@
 
         <activity
             android:name="com.k2fsa.sherpa.MainActivity"
-            android:label="ASR: Next-gen Kaldi"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

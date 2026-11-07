@@ -8,13 +8,13 @@ import com.k2fsa.sherpa.common.model.Utterance
 import com.k2fsa.sherpa.onnx.FastClusteringConfig
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineNemoEncDecCtcModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarization
 import com.k2fsa.sherpa.onnx.OfflineSpeakerDiarizationConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationModelConfig
 import com.k2fsa.sherpa.onnx.OfflineSpeakerSegmentationPyannoteModelConfig
-import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig
 import java.io.File
 
@@ -22,11 +22,6 @@ class AudioRecognitionManager(private val context: Context) {
 
     private val tag = "AudioRecognition"
 
-    /**
-     * Главный метод: Декодирует аудио, запускает Диаризацию, нарезает на куски,
-     * затем запускает ASR для каждого куска отдельно.
-     * ВАЖНО: Вызывать только в фоновом потоке (Dispatchers.IO)!
-     */
     fun processAudioFile(filePath: String): DiarizedResult? {
         val startTime = System.currentTimeMillis()
 
@@ -110,8 +105,8 @@ class AudioRecognitionManager(private val context: Context) {
     private fun initDiarizer(): OfflineSpeakerDiarization? {
         return try {
             // Копируем файлы из assets в filesDir и получаем абсолютные пути
-            val segPath = copyAssetToFilesDir(ModelPaths.DIARIZATION_SEGMENTATION)
-            val embPath = copyAssetToFilesDir(ModelPaths.DIARIZATION_EMBEDDING)
+            val segPath = copyAssetToFilesDir(ModelPaths.DIARIZATION_SEGMENTATION) ?: return null
+            val embPath = copyAssetToFilesDir(ModelPaths.DIARIZATION_EMBEDDING) ?: return null
 
             Log.d(tag, "Путь к сегментации: $segPath, существует: ${File(segPath).exists()}")
             Log.d(tag, "Путь к эмбеддингу: $embPath, существует: ${File(embPath).exists()}")
@@ -126,8 +121,8 @@ class AudioRecognitionManager(private val context: Context) {
                     model = embPath // Передаем абсолютный путь
                 ),
                 clustering = FastClusteringConfig(numClusters = 2, threshold = 0.5f),
-                minDurationOn = 0.3f,
-                minDurationOff = 0.5f
+                minDurationOn = 0.5f,
+                minDurationOff = 0.8f
             )
             OfflineSpeakerDiarization(null, config)
         } catch (e: Exception) {
@@ -140,21 +135,18 @@ class AudioRecognitionManager(private val context: Context) {
         return try {
             // Для ASR тоже можно скопировать файлы, если sherpa-onnx не умеет читать их напрямую из assets.
             // Если ваш ASR работал и так — можно оставить ModelPaths.ASR_..., но для надежности лучше тоже копировать.
-            val encPath = copyAssetToFilesDir(ModelPaths.ASR_ENCODER)
-            val decPath = copyAssetToFilesDir(ModelPaths.ASR_DECODER)
-            val tokensPath = copyAssetToFilesDir(ModelPaths.ASR_TOKENS)
+
+            val asrModel = copyAssetToFilesDir(ModelPaths.ASR_MODEL) ?: return null
+            val asrTokens = copyAssetToFilesDir(ModelPaths.ASR_TOKENS) ?: return null
 
             val config = OfflineRecognizerConfig(
-                featConfig = FeatureConfig(sampleRate = 16000, featureDim = 80),
+                featConfig = FeatureConfig(sampleRate = 16000, featureDim = 64),
                 modelConfig = OfflineModelConfig(
-                    whisper = OfflineWhisperModelConfig(
-                        encoder = encPath,
-                        decoder = decPath,
-                        language = "ru", // или "" для автоопределения
-                        task = "transcribe"
+                    nemo = OfflineNemoEncDecCtcModelConfig(
+                        model = asrModel
                     ),
-                    tokens = tokensPath,
-                    numThreads = 2,
+                    tokens = asrTokens,
+                    numThreads = 1,
                     provider = "cpu"
                 )
             )
@@ -165,38 +157,67 @@ class AudioRecognitionManager(private val context: Context) {
         }
     }
 
-    /**
-     * Копирует файл из assets во внутреннюю директорию приложения (filesDir).
-     * Возвращает абсолютный путь к скопированному файлу.
-     */
-    private fun copyAssetToFilesDir(assetPath: String): String {
-        // Теперь outFile сохранит всю структуру папок (например, files/pyannote-segmentation-3-0/onnx/model.onnx)
+//    private fun copyAssetToFilesDir(assetPath: String): String {
+//        // Теперь outFile сохранит всю структуру папок (например, files/pyannote-segmentation-3-0/onnx/model.onnx)
+//        val outFile = File(context.filesDir, assetPath)
+//
+//        // Если файл уже существует, не копируем заново
+//        if (outFile.exists() && outFile.length() > 0) {
+//            return outFile.absolutePath
+//        }
+//
+//        try {
+//            // Автоматически создаем все родительские папки на устройстве, если их нет
+//            outFile.parentFile?.let { parentDir ->
+//                if (!parentDir.exists()) {
+//                    parentDir.mkdirs()
+//                }
+//            }
+//
+//            // Копируем из assets
+//            context.assets.open(assetPath).use { input ->
+//                outFile.outputStream().use { output ->
+//                    input.copyTo(output)
+//                }
+//            }
+//            Log.d(tag, "Успешно скопирован asset: $assetPath -> ${outFile.absolutePath}")
+//        } catch (e: Exception) {
+//            Log.e(tag, "Ошибка при копировании asset $assetPath: ${e.message}")
+//        }
+//
+//        return outFile.absolutePath
+//    }
+
+    private fun copyAssetToFilesDir(assetPath: String): String? {
         val outFile = File(context.filesDir, assetPath)
 
-        // Если файл уже существует, не копируем заново
-        if (outFile.exists() && outFile.length() > 0) {
+        // Проверяем только на существование
+        if (outFile.exists()) {
             return outFile.absolutePath
         }
 
         try {
-            // Автоматически создаем все родительские папки на устройстве, если их нет
+            // Создаем родительские папки
             outFile.parentFile?.let { parentDir ->
                 if (!parentDir.exists()) {
                     parentDir.mkdirs()
                 }
             }
 
-            // Копируем из assets
+            // Копируем файл из assets
             context.assets.open(assetPath).use { input ->
                 outFile.outputStream().use { output ->
                     input.copyTo(output)
                 }
             }
-            Log.d(tag, "Успешно скопирован asset: $assetPath -> ${outFile.absolutePath}")
-        } catch (e: Exception) {
-            Log.e(tag, "Ошибка при копировании asset $assetPath: ${e.message}")
-        }
 
-        return outFile.absolutePath
+            Log.d(tag, "Успешно скопирован asset: $assetPath -> ${outFile.absolutePath}")
+            return outFile.absolutePath
+
+        } catch (e: Exception) {
+            Log.e(tag, "Ошибка при копировании $assetPath: ${e.message}")
+            return null // Возвращаем null, чтобы приложение не падало при ошибке
+        }
     }
+
 }

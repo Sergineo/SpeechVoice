@@ -12,6 +12,7 @@
 3D-Speaker/
 sherpa-onnx-pyannote-segmentation-3-0/
 sherpa-onnx-whisper-tiny/
+GigaAM-v3-sherpa-onnx/
 /captures
 .externalNativeBuild
 .cxx
