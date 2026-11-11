@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId "com.k2fsa.sherpa.onnx"
-        minSdk 23
+        minSdk 24
         targetSdk 37
         versionCode 20261026
         versionName "2.0.1"
@@ -54,6 +54,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.koin.compose.viewmodel)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

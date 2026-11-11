@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$/../.." vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/app/src/main/assets/3D-Speaker" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/assets/GigaAM-v3-sherpa-onnx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/app/src/main/assets/sherpa-onnx-pyannote-segmentation-3-0" vcs="Git" />
   </component>
